@@ -1,0 +1,57 @@
+  <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0"/>
+        <title>title</title>
+        <link rel="stylesheet" type="text/css" href="../../css/api.css"/>
+        <link rel="stylesheet" type="text/css" href="../../css/aui.css"/>
+        <style>
+          html,body{
+            /*background-color: #23283b;*/
+          }
+        </style>
+    </head>
+    <body>
+      <div class="chat" id="app">
+        <section class="aui-chat">
+          <div v-for="item in chat.content" class="aui-chat-item" :class=" item.type==1 ? 'aui-chat-left' : 'aui-chat-right'">
+              <div class="aui-chat-media">
+                  <img :src="item.type==1 ? robot.avatar : user.avatar" />
+              </div>
+              <div class="aui-chat-inner">
+                  <div class="aui-chat-name">{{ item.type==1 ? robot.name : user.nickname }}</div>
+                  <div class="aui-chat-content">
+                      <div class="aui-chat-arrow"></div>
+                      {{ item.text }}
+                  </div>
+              </div>
+          </div>
+      </section>
+      </div>
+    </body>
+    <script type="text/javascript" src="../../script/api.js"></script>
+    <script type="text/javascript" src="../../script/vue.js"></script>
+    <script type="text/javascript" src="../../script/common.js"></script>
+    <script type="text/javascript">
+    var app;
+    var data;
+        apiready = function(){
+
+          data = $tools.getData();
+          console.log('user页面得到的data：' + JSON.stringify(data));
+          app = new Vue({
+            el: '#app',
+            data: $tools.getData(),
+            watch:{
+              chat:function(val, oldval){
+                setTimeout(function (){
+                  api.pageDown();
+                },250);
+              }
+            }
+          });
+          $tools.dataRefresh(app);
+};
+    </script>
+    </html>

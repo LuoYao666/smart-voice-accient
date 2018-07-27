@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+  <html>
+  <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0"/>
+      <title>title</title>
+      <link rel="stylesheet" type="text/css" href="../../css/api.css"/>
+      <link rel="stylesheet" type="text/css" href="../../css/aui.css"/>
+      <style>
+          body,html{
+            background-color: #23283b;
+
+          }
+          body{
+            padding-right: 60px;
+            background-color: #23283b;
+          }
+          .avatar{
+            display:block;
+            width: 100px;
+            height: 100px;
+            margin: 70px auto 0;
+          }
+          .nickname{
+            width: 100%;
+            height: 30px;
+            font-size: 30px;
+            line-height: 30px;
+            margin: 35px auto;
+            color: #fff;
+            text-align: center;
+          }
+          .aui-list{
+            background-color: #23283b;
+          }
+          .aui-list .aui-list-item-title,  .aui-list .aui-list-item-right{
+            color: #ffffff;
+          }
+      </style>
+  </head>
+  <body>
+        <div id="app">
+          <div class="userinfo" onclick="openUser();" tapmode>
+            <img v-bind:src="user.avatar" alt="" class="avatar">
+            <div class="nickname">{{ user.nickname }}</div>
+          </div>
+          <div class="aui-content aui-margin-b-15">
+          <ul class="aui-list aui-list-in">
+            <li class="aui-list-item aui-list-item-middle" onclick="setTran();" tapmode>
+                <div class="aui-list-item-inner aui-list-item-arrow">
+                  <div class="aui-list-item-title">功能</div>
+                  <div class="aui-list-item-right" id="translate">{{ setting.translate }}</div>
+            </li>
+            <li class="aui-list-item">
+                <div class="aui-list-item-inner aui-list-item-arrow" onclick="setMouse();" tapmode>
+                  <div class="aui-list-item-title">发音人</div>
+                  <div class="aui-list-item-right" id="mouse">{{ setting.mouse.name }}</div>
+                </div>
+            </li>
+            <li class="aui-list-item">
+                <div class="aui-list-item-inner aui-list-item-arrow" onclick="setVoice();" tapmode>
+                    <div class="aui-list-item-title">识别语音</div>
+                    <div class="aui-list-item-right" id="voice">{{ setting.voice.name }}</div>
+                </div>
+            </li>
+            <li class="aui-list-item">
+                 <div class="aui-list-item-inner">
+                     <div class="aui-list-item-title">语音唤醒</div>
+                     <div class="aui-list-item-right" onclick="setWakeup();" tapmode>
+                    <input type="checkbox" class="aui-switch" v-model="setting.wakeup">
+                     </div>
+                 </div>
+             </li>
+          </ul>
+          </div>
+        </div>
+  </body>
+  <script type="text/javascript" src="../../script/api.js"></script>
+  <script type="text/javascript" src="../../script/vue.js"></script>
+  <script type="text/javascript" src="../../script/common.js"></script>
+  <script type="text/javascript">
+        var app;
+
+      apiready = function(){
+        app = new Vue({
+          el: '#app',
+          data: $tools.getData()
+        });
+
+        //添加data refresh事件监听
+        $tools.dataRefresh(app);
+
+      };
+      function openUser(){
+        api.openWin({
+    name: 'sectting',
+    url: '../sectting/sectting_win.html'
+
+});}
+
+function setTran(){
+  api.actionSheet({
+      title: '功能选项',
+      cancelTitle: '取消',
+      buttons: ['智能翻译','智能语音']
+  }, function(ret, err){
+      if( ret ){
+           if (ret.buttonIndex == 1){
+             $tools.saveData('setting',{translate:'智能翻译'});
+
+           }else if(ret.buttonIndex == 2){
+             //$api.html($api.dom('#translate'), '智能语音');
+             $tools.saveData('setting',{translate:'智能语音'});
+           }
+      }else{
+           alert( JSON.stringify( err ) );
+      }
+  });}
+  function setMouse(){
+    api.actionSheet({
+        title: '人物选项',
+        cancelTitle: '取消',
+        buttons: ['小燕','小梅-女青、中英、粤语','亨利-男青、英语']
+    }, function(ret, err){
+        if( ret ){
+             if (ret.buttonIndex == 1){
+               //$api.html($api.dom('#mouse'), '大明');
+               $tools.saveData('setting',{
+                 mouse:{
+                     name:'小燕',
+                     value:'xiaoyan'
+                   }
+                 });
+             }else if(ret.buttonIndex == 2){
+               $tools.saveData('setting',{
+                 mouse:{
+                     name:'小梅-女青、中英、粤语',
+                     value:'vixl'
+                   }
+                 });
+             }else if(ret.buttonIndex == 3){
+               $tools.saveData('setting',{
+                 mouse:{
+                     name:'亨利-男青、英语',
+                     value:'henry'
+                   }
+                 });
+             }
+        }else{
+             alert( JSON.stringify( err ) );
+        }
+    });}
+    function setVoice(){
+      api.actionSheet({
+          title: '语音选项',
+          cancelTitle: '取消',
+          buttons: ['普通话','粤语']
+      }, function(ret, err){
+          if( ret ){
+               if (ret.buttonIndex == 1){
+                 //$api.html($api.dom('#voice'), '普通话');
+                 $tools.saveData('setting',{
+                   voice: {
+                       name:'普通话',
+                       value:'mandarin'
+                     }
+                   });
+               }else if(ret.buttonIndex == 2){
+
+                 $tools.saveData('setting',{
+                   voice:{
+                       name:'粤语',
+                       value:'cantonese'
+                     }
+                   });
+               }
+          }else{
+               alert( JSON.stringify( err ) );
+          }
+      });
+    }
+    function setWakeup(){
+      //var nickname = app.$data.user.nickname
+      $tools.saveData('setting',{
+        wakeup: !app.$data.setting.wakeup});
+    }
+  </script>
+  </html>

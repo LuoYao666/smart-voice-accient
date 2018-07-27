@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+  <html>
+  <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0"/>
+      <title>title</title>
+      <link rel="stylesheet" type="text/css" href="../../css/api.css"/>
+      <style>
+          body,html{
+            background-color: #23283b;
+
+          }
+          .menu {
+            display: block;
+            float: left;
+            width: 25px;
+            height: 25px;
+            margin: 10px 0 0 25px;
+          }
+
+          .clean {
+            display: block;
+            float: right;
+            width: 25px;
+            height: 25px;
+            margin: 10px 25px 0 0;
+          }
+          footer{
+            width: 100%;
+            position: absolute;
+            bottom: 0;
+          }
+          .mic{
+            display: block;
+            width: 66px;
+            height: 66px;
+            margin: 0 auto;
+          }
+      </style>
+  </head>
+  <body>
+      <div id="app">
+        <header>
+          <img src="../../image/menu.png" alt="" class="menu" onclick="openSetting();" tapmode>
+          <img src="../../image/menu.png" alt="" class="clean" onclick="clean();" tapmode>
+          <div style="clear:both"></div>
+        </header>
+        <footer>
+          <img src="../../image/voice_2x.png" alt="" class="mic">
+        </fotter>
+      </div>
+  </body>
+  <script type="text/javascript" src="../../script/api.js"></script>
+  <script type="text/javascript" src="../../script/hammer.js"></script>
+  <script type="text/javascript" src="../../script/vue.js"></script>
+  <script type="text/javascript" src="../../script/md5.js"></script>
+  <script type="text/javascript" src="../../script/common.js"></script>
+
+  <script type="text/javascript">
+     var app;
+     var data;
+     var voiceRecognizer;
+     var audioStreamer;
+      apiready = function(){
+         app = new Vue({
+          el: '#app',
+          data: $tools.getData(),
+          watch:{
+            setting: function(val,oldval){
+              recognizeConfig(app.$data.setting.voice.value);
+              readConfig(app.$data.setting.mouse.value);
+              wakeupStop();
+            }
+          }
+        })
+
+        $tools.dataRefresh(app);
+
+        var mc = new Hammer($api.dom('.mic'));
+        mc.on("press",function(ev){
+          console.log('press');
+          api.toast({
+              msg: '正在识别中.......',
+              duration: 2000,
+              location: 'middle'
+          });
+            chatStart();
+
+        })
+
+        mc.on("pressup",function(ev){
+          voiceRecognizer.recognizeStop();
+        })
+
+        $api.fixStatusBar($api.dom('header'));
+        var headerheight = $api.offset($api.dom('header')).h;
+        var fotterheight = $api.offset($api.dom('footer')).h;
+        api.openFrame({
+            name: 'main',
+            url: './main_frm.html',
+            rect: {
+                x: 0,
+                y:  headerheight,
+                w: api.winWidth,
+                h: api.winHeight-headerheight-fotterheight
+            }
+        });
+        xunfeiInit();
+
+      };
+
+          function xunfeiInit(){
+            voiceRecognizer = api.require('voiceRecognizer');
+            voiceRecognizer.createUtility({
+                android_appid: '5b5285ec',
+                ios_appid: '5b528618'
+            }, function(ret, err) {
+                if (ret.status) {
+                    console.log('引擎创建成功');
+
+                    //添加监听事件
+                    xunfeiAddEventListener();
+                    //语音配置
+                    recognizeConfig(app.$data.setting.voice.value);
+                    //朗读配置
+                    readConfig(app.$data.setting.mouse.value);
+                    //唤醒配置
+                    wakeupConfig();
+                    //addHUD();音量大小指示器
+                    var centerx = api.winWidth/2;
+                    var hudy = api.winHeight-17-15;
+                    addHud(centerx-33-15-50, hudy, 'right_left');
+                    addHud(centerx+33+15+50, hudy, 'left_right');
+
+                } else {
+                    api.alert({ msg: "创建失败" });
+                }
+            });
+          }
+
+          function xunfeiAddEventListener(){
+            voiceRecognizer.addEventListener({
+              name:'onError'
+            },function(ret){
+              console.log('onError'+JSON.stringify(ret));
+              if(ret.error.code==10118){
+                wakeupStart();
+              }else  if(ret.error.code==2002 || ret.error.code==2003){
+                api.toast({
+                    msg: '网络错误',
+                    duration: 2000,
+                    location: 'bottom'
+                });
+
+              }
+            });
+            voiceRecognizer.addEventListener({
+                name: 'onWakeupError'
+            },function(ret){
+                console.log('onWakeupError：'+ JSON.stringify(ret));
+                chatStart();
+            });
+            voiceRecognizer.addEventListener({
+                name: 'wakeupResult'
+            },function(ret){
+                console.log('唤醒结果为：'+ JSON.stringify(ret));
+                chatStart();
+            });
+            voiceRecognizer.addEventListener({
+                name: 'recognizeResult'
+            },function(ret){
+                console.log('语音识别结果为：'+ JSON.stringify(ret));
+                if (ret.recognizeResult && ret.recognizeResult.result.length) {
+                  //添加到我的聊天
+                  addChat(ret.recognizeResult.result, 2);
+
+                  if (app.$data.setting.translate=='智能翻译') {
+                    translate(ret.recognizeResult.result);
+                  } else if (app.$data.setting.translate=='智能语音') {
+                    useAIUI(ret.recognizeResult.result)
+                  }
+                }else{
+                  wakeupStart();
+                }
+            });
+            //语音朗读监听完毕
+            voiceRecognizer.addEventListener({
+              name:'readComplete'
+            },function(ret){
+              console.log('朗读完毕'+ JSON.stringify(ret));
+              wakeupStart();
+            });
+          }
+
+
+          function chatStart(){
+            wakeupStop();
+            voiceRecognizer.stopRead();
+
+            if (!audioStreamer) {
+              audioStreamer = api.require('audioStreamer');
+            }
+
+            audioStreamer.openPlayer({
+                path: 'widget://res/ding.mp3'
+            });
+
+            audioStreamer.addEventListener({
+            }, function(ret) {
+                if (ret.state=='finished') {
+                  voiceRecognizer.recognizeStart(function(ret) {
+                      if (ret.status) {
+                          console.log('开始语音识别');
+                      } else {
+                          api.alert({ msg: "开始失败"});
+                      }
+                  });
+                }
+            });
+          }
+
+    function wakeupStop(){
+      voiceRecognizer.wakeupIsListening(function(ret){
+      if (ret.listening) {
+        voiceRecognizer.wakeupStop();
+              }
+          });
+    }
+        //网络监测
+
+      //语音识别配置
+      function recognizeConfig(voice){
+        var voiceRecognizer = api.require('voiceRecognizer');
+        voiceRecognizer.recognizeConfig({
+            config: {
+                vadbos: '5000',
+                vadeos: '2000',
+                timeout: '10000',
+                netTimeout: '10000',
+                rate: '16000',
+                dot: true,
+                accent:voice
+            }
+        }, function(ret) {
+            if (ret.status) {
+                console.log('语音识别配置成功');
+            }
+        });
+      }
+
+      function readConfig(mouse){
+        var voiceRecognizer = api.require('voiceRecognizer');
+        voiceRecognizer.readConfig({
+            config:{
+               speed: '50',
+                volume: '50',
+                pitch: '50',
+                rate: '16000',
+                voice: mouse
+            }
+        }, function(ret) {
+            if (ret.status) {
+                console.log('朗读识别配置成功');
+            }
+        });
+      }
+
+
+      function wakeupConfig(){
+        var voiceRecognizer = api.require('voiceRecognizer');
+        voiceRecognizer.wakeupConfig({
+           ios_wordPath: 'widget://res/5b528618.jet',
+           android_wordPath: 'widget://res/5b5285ec.jet',
+           continue: true,
+           threshold:'0:600;1:600;2:600;'
+        },function(ret){
+            if (ret.status) {
+                console.log('唤醒配置成功');
+                voiceRecognizer.wakeupStop();
+                wakeupStart();
+            } else {
+                api.alert({ msg: "配置失败" });
+            }
+        });
+      }
+      //语音唤醒开始
+
+      //音量大小指示器自己添加
+      function addHud(x, y, z){
+        var voiceRecognizer = api.require('voiceRecognizer');
+        voiceRecognizer.addHUD({
+            center: {
+               x: x,
+               y: y
+            },
+            gradientColors: [
+              {
+                 top: '#ea0090',
+                 bottom: '#8f1f99'
+              },
+              {
+                 top: '#ea0090',
+                 bottom: '#8f1f99'
+              },
+              {
+                 top: '#ea0090',
+                 bottom: '#8f1f99'
+              },
+              {
+                 top: '#ea0090',
+                 bottom: '#8f1f99'
+              },
+              {
+                 top: '#ea0090',
+                 bottom: '#8f1f99'
+              },
+              {
+                 top: '#ea0090',
+                 bottom: '#8f1f99'
+              },
+              {
+                 top: '#ea0090',
+                 bottom: '#8f1f99'
+              },
+              {
+                 top: '#ea0090',
+                 bottom: '#8f1f99'
+              }
+            ],
+            orientation: z,
+            target: 'recognizer',
+            bg: '#23283b',
+        }, function(ret) {
+            var volume = ret.id;
+        });
+      }
+      //语音唤醒开始
+      function wakeupStart(){
+        if (app.$data.setting.wakeup) {
+          voiceRecognizer.wakeupIsListening(function(ret){
+              if (!ret.listening) {
+                voiceRecognizer.wakeupStart(function(ret){
+                    if (ret.status) {
+                        console.log('开始成功');
+                    } else {
+                        api.alert({ msg: "开始失败" });
+                    }
+                });
+
+              }else {
+                console.log('已经打开了，不用再开启唤醒监听了');
+              }
+          });
+        }else{
+          wakeupStop();
+        }
+      }
+      function wakeupStop(){
+        voiceRecognizer.wakeupIsListening(function(ret){
+        if (ret.listening) {
+        voiceRecognizer.wakeupStop();
+              }
+          });
+      }
+        //添加一条聊天
+         function addChat(text, type, url){
+           console.log(text);
+
+           var content = app.$data.chat.content;
+           content.push({
+             text: text,
+             type: type
+           })
+           $tools.saveData('chat',{
+             content: content
+           })
+           if(type == 1){
+             if (url && url.length){
+               if (!audioStreamer){
+                 audioStreamer = api.require("audioStreamer");
+               }
+               audioStreamer.openPlayer({
+                 path:url
+               });
+
+               audioStreamer.addEventListener({
+
+               },function(ret){
+                 if(ret.state=='finshed'){
+                   wakeupStart();
+                 }
+               });
+             }else{
+               voiceRecognizer.startRead({
+                 readString:text
+               });
+             }
+           }
+         }
+
+         //智能翻译
+         function translate(text){
+           //翻译过程XXXX
+          var appKey = '1157ce1ac9f14344';
+          var key = 'ir4TdfLNtdVyTiZ66nnlu22BP1DMR0zZ';//注意：暴露appSecret，有被盗用造成损失的风险
+          var salt = (new Date).getTime();
+          var query = text;
+          // 多个query可以用\n连接  如 query='apple\norange\nbanana\npear'
+          var from = '';
+          var to = 'en';
+          var str1 = appKey + query + salt +key;
+          var sign = md5(str1);
+          api.ajax({
+              url: 'http://openapi.youdao.com/api',
+              method: 'post',
+              dataType: 'json',
+              data: {
+                  values: {
+                    q: query,
+                    appKey: appKey,
+                    salt: salt,
+                    from: from,
+                    to: to,
+                    sign: sign
+                  }
+              }
+          }, function(ret, err) {
+              if (ret) {
+                  console.log('123'+JSON.stringify(ret));
+                  if (ret.translation) {
+                    addChat(ret.translation[0], 1);
+
+              } else {
+                  console.log('456'+JSON.stringify(err));
+              }
+          }
+         });}
+         //智能语音
+         function useAIUI(text){
+           api.ajax({
+               url: 'http://echo.leanapp.cn/api/aiui2',
+               method: 'post',
+               data: {
+                   values: {
+                       text: text
+                   }
+               }
+           },function(ret, err){
+               if (ret) {
+                 var str;
+                 if(ret.code=='00000'){
+                   str = ret.data.text;
+                 }else{
+                   str = '对不起，我听不读懂'
+                 }
+                 addChat(str,1,ret.data.url)
+               } else {
+                   alert( JSON.stringify( err ) );
+               }
+           });
+
+         }
+          //
+            function openSetting(){
+              api.openSlidPane({
+                  type: 'left'
+              });
+
+            }
+            function clean(){
+              api.setPrefs({
+                  key: 'data',
+                  value: ''
+              },function(ret,err){
+                  api.toast({
+                      msg: '清空数据成功，请重启！',
+                      duration: 2000,
+                      location: 'middle'
+                  });
+
+              });
+
+            }
+
+  </script>
+  </html>

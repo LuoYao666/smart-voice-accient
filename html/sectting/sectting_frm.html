@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+  <html>
+  <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0"/>
+      <title>title</title>
+      <link rel="stylesheet" type="text/css" href="../../css/api.css"/>
+      <link rel="stylesheet" type="text/css" href="../../css/aui.css"/>
+      <style>
+      body,html{
+        background-color: #23283b;
+      }
+          .photo{
+            display: block;
+            width: 50px;
+            height:50px;
+            margin: 50px auto;
+
+          }
+          .aui-list{
+            background-color: #23283b;
+          }
+          .aui-list .aui-list-item-title,  .aui-list .aui-list-item-right{
+            color: #ffffff;
+          }
+          .a{
+            display: block;
+            width: 50px;
+            height:50px;
+            margin: 50px auto;
+          }
+
+      </style>
+  </head>
+  <body>
+      <div id="app">
+        <div class="photo">
+          <img id="photo" v-bind:src="data.user.avatar" class="a" onclick="setPhoto();" tapmode>
+        </div>
+        <div class="aui-content aui-margin-b-15">
+        <ul class="aui-list aui-list-in">
+
+          <li class="aui-list-item aui-list-item-middle" onclick="setName();" tapmode>
+              <div class="aui-list-item-inner aui-list-item-arrow">
+                  <div class="aui-list-item-title">昵称</div>
+                  <div class="aui-list-item-right" id="nickname">{{ user.nickname }}</div>
+          </li>
+          <li class="aui-list-item" onclick="setSex();" tapmode>
+              <div class="aui-list-item-inner aui-list-item-arrow">
+                  <div class="aui-list-item-title">性别</div>
+                  <div class="aui-list-item-right" id="sex">{{ user.sex }}</div>
+              </div>
+          </li>
+          <li class="aui-list-item">
+              <div class="aui-list-item-inner aui-list-item-arrow" onclick="setAge();" tapmode>
+                  <div class="aui-list-item-title">年龄</div>
+                  <div class="aui-list-item-right" id="nickage">{{ user.age }}</div>
+              </div>
+          </li>
+        </ul>
+        </div>
+      </div>
+      </div>
+
+  </body>
+  <script type="text/javascript" src="../../script/api.js"></script>
+  <script type="text/javascript" src="../../script/vue.js"></script>
+  <script type="text/javascript" src="../../script/common.js"></script>
+  <script type="text/javascript">
+
+        var app;
+        var data;
+
+      apiready = function(){
+
+                data = $tools.getData();
+                console.log('user页面得到的data：' + JSON.stringify(data));
+
+                app = new Vue({
+                  el: '#app',
+                  data: data
+                });
+
+                //添加data refresh事件监听
+                $tools.dataRefresh(app);
+
+                //添加一个头像保存完成的消息监听
+                api.addEventListener({
+                    name: 'avatarsave'
+                }, function(ret, err) {
+                    console.log('头像已经保存好了:' + JSON.stringify(ret));
+                    $tools.saveData('user',{avatar: ret.value.avatarurl
+                    });
+                });
+
+              }
+
+
+      function setSex(){
+        api.actionSheet({
+            title: '设置性别',
+            cancelTitle: '取消',
+            buttons: ['男','女']
+        }, function(ret, err){
+            if( ret ){
+                 if (ret.buttonIndex == 1){
+                   $tools.saveData('user',{sex:'男'});
+
+                 }else if(ret.buttonIndex == 2){
+                   $tools.saveData('user',{sex:'女'});
+                 }
+            }else{
+                 alert( JSON.stringify( err ) );
+            }
+        });}
+        //昵称
+      function setName(){
+        api.prompt({
+          title:'',
+          msg:'请修改昵称',
+          text:$api.html($api.dom('#nickname')),
+          type:'text',
+            buttons: ['确定', '取消']
+        }, function(ret, err){
+            if( ret ){
+                 console.log(JSON.stringify( ret ));
+                 if (ret.buttonIndex==1){
+                   $tools.saveData('user',{
+                  nickname: ret.text
+                });
+                 }
+            }else{
+                 alert( JSON.stringify( err ) );
+            }
+        });}
+        //年龄
+      function setAge(){
+        api.prompt({
+          title:'',
+          msg:'输入年龄',
+          text:$api.html($api.dom('#nickage')),
+          type:'number',
+            buttons: ['确定', '取消']
+        }, function(ret, err){
+            if( ret ){
+                 console.log(JSON.stringify( ret ));
+                 if (ret.buttonIndex==1){
+                   $tools.saveData('user',{
+                  age: ret.text
+                });
+                 }
+            }else{
+                 alert( JSON.stringify( err ) );
+            }
+        });}
+        //头像
+      function setPhoto(){
+        api.actionSheet({
+            title: '更换头像',
+            cancelTitle: '取消',
+            buttons: ['拍照','相册']
+        }, function(ret, err){
+            if( ret ){
+              var sourcetype = ""
+                 if (ret.buttonIndex == 1){
+                   sourcetype = 'camera';
+                 }else if(ret.buttonIndex == 2){
+                   sourcetype = 'library';
+                 }else {
+                   return;
+                 }
+                 api.getPicture({
+                 sourceType: sourcetype,
+                 encodingType: 'jpg',
+                 mediaValue: 'pic',
+                 destinationType: 'url',
+                 allowEdit: true,
+                 quality:200,
+
+                 saveToPhotoAlbum: true
+                 }, function(ret, err) {
+                 if (ret) {
+                   console.log(JSON.stringify(ret));
+                   if (api.systemType=='ios'){
+                     $tools.saveData('user',{
+                         avatar: ret.data
+                       });
+                   }else {
+                     api.openFrame({
+                         name: 'avatar',
+                         url: './avatar_frm.html',
+                         rect: {
+                             x: 0,
+                             y: 0,
+                             w: api.winWidth,
+                             h: api.winHeight
+                         },
+                         pageParam: {
+                             imgurl: ret.data
+                         },
+
+                     });
+}
+                 } else {
+                   alert(JSON.stringify(err));
+                 }
+                 });
+            }else{
+                 alert( JSON.stringify( err ) );
+            }
+        })
+
+      }
+
+
+  </script>
+  </html>

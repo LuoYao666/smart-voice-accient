@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+  <html>
+  <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0"/>
+      <title>title</title>
+      <link rel="stylesheet" type="text/css" href="../css/api.css"/>
+      <link rel="stylesheet" type="text/css" href="../css/aui.css"/>
+      <style>
+          body,html{
+            background-color: #23283b;
+          }
+          
+          header{
+            width:37px;
+            height:37px;
+            left:20px;
+            top:20px;
+          }
+        }
+          .photo{
+            display: block;
+            width: 50px;
+            height:50px;
+            margin: 50px auto;
+
+          }
+          .aui-list{
+            background-color: #23283b;
+          }
+          .aui-list .aui-list-item-title,  .aui-list .aui-list-item-right{
+            color: #ffffff;
+          }
+          .a{
+            display: block;
+            width: 50px;
+            height:50px;
+            margin: 50px auto;
+          }
+
+      </style>
+  </head>
+  <body>
+    <header>
+      <img src="../image/back.jpg" >
+    </header>
+    <div class="photo">
+      <img  src="../image/photo.png" class="a">
+    </div>
+    <div class="aui-content aui-margin-b-15">
+    <ul class="aui-list aui-list-in">
+
+      <li class="aui-list-item aui-list-item-middle">
+          <div class="aui-list-item-inner aui-list-item-arrow">
+              <div class="aui-list-item-title">昵称</div>
+              <div class="aui-list-item-right">用户昵称</div>
+      </li>
+      <li class="aui-list-item">
+          <div class="aui-list-item-inner aui-list-item-arrow">
+              <div class="aui-list-item-title">性别</div>
+              <div class="aui-list-item-right">男</div>
+          </div>
+      </li>
+      <li class="aui-list-item">
+          <div class="aui-list-item-inner aui-list-item-arrow">
+              <div class="aui-list-item-title">年龄</div>
+              <div class="aui-list-item-right">18</div>
+          </div>
+      </li>
+    </ul>
+    </div>
+  </body>
+  <script type="text/javascript" src="../script/api.js"></script>
+  <script type="text/javascript">
+      apiready = function(){
+
+      };
+  </script>
+  </html>

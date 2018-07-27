@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+  <html>
+  <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0"/>
+      <title>title</title>
+      <link rel="stylesheet" type="text/css" href="../../css/api.css"/>
+      <style>
+          body,html{
+            background-color:black ;
+
+          }
+          .footer{
+            position: fixed;
+            bottom: 0;
+            text-align: center;
+            width: 100%;
+
+          }
+          .footer font{
+            display: inline-block;
+            margin: 0 20px 10px 20px;
+            height: 30px;
+            line-height: 30px;
+            font-size: 30px;
+            color:white ;
+          }
+      </style>
+  </head>
+  <body>
+    <div class="footer">
+      <span>
+        <font onclick="api.closeFrame();" tapmode>取消</font>
+        <font onclick="saveImage();" tapmode>确认</font>
+        <font onclick="reset();" tapmode>重置</font>
+      </span>
+    </div>
+
+  </body>
+  <script type="text/javascript" src="../../script/api.js"></script>
+  <script type="text/javascript">
+      apiready = function(){
+        var FNImageClip = api.require("FNImageClip");
+        FNImageClip.open({
+            rect: {
+                x: 0,
+                y: 0,
+                w: api.winWidth,
+                h: api.winHeight-30-20
+            },
+            srcPath: api.pageParam.imgurl,
+            style: {
+                mask: '#23283b',
+                clip: {
+                    w: (api.winWidth-100)/2,
+                    //h: api.winWidth-100,
+                    x: 50,
+                    y: (api.winHeight-api.winWidth)/2,
+                    borderColor: '#0f0',
+                    borderWidth: 1,
+                    appearance: 'circular'
+                }
+            },
+            mode:'image',
+            fixedOn: api.frameName
+        }, function(ret, err){
+            if( ret ){
+
+            }else{
+                alert( JSON.stringify( err ) );
+            }
+        });
+      };
+      function saveImage(){
+        var imgtemp = api.pageParam.imgurl;
+        console.log('图片地址' + imgtemp);
+        var urlArray = imgtemp.split('.');
+        console.log('切割后数组'+ urlArray);
+        var urlid = urlArray[0];
+        var urlext = urlArray[1];
+        console.log('前面'+urlid);
+        console.log('后面'+urlext);
+        var avatarurl = urlid + 'avatar' + '.' + urlext;
+        console.log('最终'+avatarurl);
+
+        var FNImageClip = api.require("FNImageClip");
+        FNImageClip.save({
+            destPath: avatarurl,
+            copyToAlbum: false,
+            quality: 1
+        },function(ret, err){
+            if(ret) {
+                console.log(JSON.stringify(ret));
+                api.sendEvent({
+                    name: 'avatarsave',
+                    extra: {
+                        avatarurl:ret.destPath
+                    }
+                });
+                api.closeFrame({
+
+                });
+
+
+            } else{
+                alert(JSON.stringify(err));
+            }
+        });
+      }
+      function reset(){
+        var FNImageClip = api.require("FNImageClip");
+        FNImageClip.reset();
+      }
+
+  </script>
+  </html>
